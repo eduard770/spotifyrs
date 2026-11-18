@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=SpotifyRS
+Comment=Control playback and browse your library
+Comment[pt]=Controla a reprodução e explora a biblioteca
+Exec=spotifyrs
+Icon=spotifyrs
+Terminal=false
+Categories=AudioVideo;Audio;
+StartupWMClass=spotifyrs
+Actions=Demo;
+
+[Desktop Action Demo]
+Name=Try the demo
+Name[pt]=Experimentar demonstração
+Exec=spotifyrs --demo

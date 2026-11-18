@@ -1,4 +1,4 @@
-use crate::{credentials, soloist};
+use crate::{credentials, settings, soloist};
 use std::{
     env, fs,
     net::{SocketAddr, TcpStream},
@@ -27,14 +27,31 @@ impl Drop for LocalSoloist {
 }
 
 fn path_file() -> Option<PathBuf> {
-    Some(PathBuf::from(env::var_os("LOCALAPPDATA")?).join("SpotifyRS/soloist-path.txt"))
+    Some(settings::config_dir()?.join("soloist-path.txt"))
 }
 
 fn is_soloist(path: &Path) -> bool {
-    path.file_name()
+    let named_soloist = path
+        .file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.eq_ignore_ascii_case(EXE))
-        && path.is_file()
+        .is_some_and(|name| {
+            if cfg!(windows) {
+                name.eq_ignore_ascii_case(EXE)
+            } else {
+                name == EXE
+            }
+        });
+    if !named_soloist {
+        return false;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        path.metadata()
+            .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+    }
+    #[cfg(not(target_os = "linux"))]
+    path.is_file()
 }
 
 pub fn find_executable() -> Option<PathBuf> {
@@ -44,21 +61,41 @@ pub fn find_executable() -> Option<PathBuf> {
     let beside_app = env::current_exe()
         .ok()
         .and_then(|file| Some(file.parent()?.join(EXE)));
-    let profile = env::var_os("USERPROFILE").map(PathBuf::from);
-    let common_places = [
-        "Documents/spotifyrs/soloist_release_windows_x86_64",
-        "Downloads/soloist_release_windows_x86_64",
-        "Documents/spotifyrs",
-    ];
     stored
         .into_iter()
         .chain(beside_app)
-        .chain(
-            common_places
-                .into_iter()
-                .filter_map(|folder| Some(profile.as_ref()?.join(folder).join(EXE))),
-        )
-        .find(|path| is_soloist(path))
+        .chain(platform_paths())
+        .find(|path| path.is_absolute() && is_soloist(path))
+}
+
+#[cfg(windows)]
+fn platform_paths() -> impl Iterator<Item = PathBuf> {
+    let profile = env::var_os("USERPROFILE").map(PathBuf::from);
+    [
+        "Documents/spotifyrs/soloist_release_windows_x86_64",
+        "Downloads/soloist_release_windows_x86_64",
+        "Documents/spotifyrs",
+    ]
+    .into_iter()
+    .filter_map(move |folder| Some(profile.as_ref()?.join(folder).join(EXE)))
+}
+
+#[cfg(target_os = "linux")]
+fn platform_paths() -> impl Iterator<Item = PathBuf> {
+    let path = env::var_os("PATH").unwrap_or_default();
+    let home_release = env::var_os("HOME")
+        .map(|home| PathBuf::from(home).join("soloist_release_x86_64").join(EXE));
+    env::split_paths(&path)
+        .filter(|folder| folder.is_absolute())
+        .map(|folder| folder.join(EXE))
+        .chain(home_release)
+        .collect::<Vec<_>>()
+        .into_iter()
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+fn platform_paths() -> impl Iterator<Item = PathBuf> {
+    std::iter::empty()
 }
 
 pub fn start(
@@ -80,7 +117,7 @@ pub fn start(
                 None if store_key(entered).is_ok() => {
                     Some("Chave guardada. Será usada no próximo arranque do Soloist.")
                 }
-                None => Some("O Windows não guardou a chave."),
+                None => Some("Não foi possível guardar a chave no cofre do sistema."),
             }
         } else {
             None
@@ -144,8 +181,10 @@ pub fn start(
                         .and_then(|_| fs::write(&file, path.to_string_lossy().as_bytes()));
                 }
             }
-            let warning = (remember && !entered.is_empty() && store_key(key).is_err())
-                .then(|| "O Soloist arrancou, mas o Windows não guardou a chave.".to_string());
+            let warning = (remember && !entered.is_empty() && store_key(key).is_err()).then(|| {
+                "O Soloist arrancou, mas não foi possível guardar a chave no cofre do sistema."
+                    .to_string()
+            });
             return Ok((Some(process), warning));
         }
         thread::sleep(Duration::from_millis(100));

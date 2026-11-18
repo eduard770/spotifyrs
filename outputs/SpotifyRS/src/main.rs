@@ -241,13 +241,16 @@ fn current_settings(ui: &AppWindow) -> Settings {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ui = AppWindow::new()?;
+    #[cfg(target_os = "linux")]
+    slint::set_xdg_app_id("spotifyrs")?;
     let settings_path = settings::path();
     let mut saved = settings_path
         .as_deref()
         .map(Settings::load)
         .unwrap_or_default();
     saved.normalize();
-    ui.set_soloist_launch_supported(cfg!(windows));
+    let soloist_launch_supported = cfg!(any(windows, target_os = "linux"));
+    ui.set_soloist_launch_supported(soloist_launch_supported);
     ui.set_soloist_address(saved.soloist_address.as_str().into());
     ui.set_remember_soloist_key(saved.remember_soloist_key);
     ui.set_auto_start_soloist(saved.auto_start_soloist);
@@ -474,7 +477,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if !initial.client_id.is_empty() {
             let _ = tx.try_send(Command::RestoreAuthorization(initial.client_id.clone()));
         }
-        if cfg!(windows) && initial.auto_start_soloist {
+        if soloist_launch_supported && initial.auto_start_soloist {
             dispatch(
                 &ui.as_weak(),
                 &tx,

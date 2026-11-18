@@ -4,7 +4,7 @@ Companion desktop experimental em **Rust + Slint**, em português de Portugal. I
 
 ## Experimentar
 
-No pacote Windows, abre `spotifyrs.exe` e escolhe **Experimentar demonstração**. Podes abrir três playlists de exemplo, pesquisar seis faixas fictícias, consultar a fila e testar os controlos. Este modo é silencioso e funciona sem credenciais.
+Abre o SpotifyRS e escolhe **Experimentar demonstração**. Podes abrir três playlists de exemplo, pesquisar seis faixas fictícias, consultar a fila e testar os controlos. Este modo é silencioso e funciona sem credenciais.
 
 Para ouvir música neste computador, liga o Soloist e escolhe uma faixa da fila, cola um link ou pesquisa pelo nome depois de autorizar o catálogo. O [guia do Soloist](SOLOIST.md) explica a configuração.
 
@@ -18,7 +18,7 @@ Para ouvir música neste computador, liga o Soloist e escolhe uma faixa da fila,
 6. No modo Web API, inicia uma faixa num computador, telemóvel ou coluna compatível e escolhe **Atualizar estado** em **Ligações**.
 7. Usa os controlos ou escolhe um dispositivo e carrega em **Usar dispositivo**. A transferência não solicita o início da reprodução; podes carregar em Reproduzir depois.
 
-O SpotifyRS guarda o Client ID ao fechar. Também podes fornecê-lo com a variável de ambiente `SPOTIFY_CLIENT_ID`. Depois de autorizar, o Gestor de Credenciais do Windows guarda o token de renovação para reutilizar a sessão. A pesquisa recupera a autorização ao abrir e **Ligar via Web API** reutiliza a autorização de reprodução, se existir. **Esquecer autorização** remove as autorizações guardadas neste PC. Para revogar o acesso na conta, usa a [página de aplicações do Spotify](https://www.spotify.com/account/apps/).
+O SpotifyRS guarda o Client ID ao fechar. Também podes fornecê-lo com a variável de ambiente `SPOTIFY_CLIENT_ID`. Os tokens de renovação são guardados no Gestor de Credenciais do Windows ou no cofre Secret Service no Linux. A pesquisa recupera a autorização ao abrir e **Ligar via Web API** reutiliza a autorização de reprodução, se existir. **Esquecer autorização** remove as autorizações guardadas neste PC. Para revogar o acesso na conta, usa a [página de aplicações do Spotify](https://www.spotify.com/account/apps/).
 
 ## O que está incluído
 
@@ -42,7 +42,21 @@ O acesso real depende das permissões, disponibilidade e quotas da aplicação S
 
 A pesquisa mostra até dez faixas por consulta. A interface inclui a fila local do Soloist, a reprodução por link e a barra de controlos. Biblioteca pessoal, playlists, capas, volume e avanço para uma posição específica ficam para outra iteração.
 
-## Compilar e testar
+## Instalar no Arch Linux
+
+Num sistema Arch Linux x86_64 atualizado, instala `base-devel` com `sudo pacman -S --needed base-devel`. Na raiz do checkout, executa como utilizador normal:
+
+```sh
+cd outputs/SpotifyRS/packaging/arch
+makepkg --syncdeps --install
+spotifyrs --demo
+```
+
+O pacote compila com as versões fixadas em `Cargo.lock`, executa os testes e instala o comando `spotifyrs` e a entrada **SpotifyRS** no menu da sessão X11 ou Wayland. Para desenvolvimento, executa `cargo test --locked` e `cargo run --locked -- --demo` em `outputs/SpotifyRS`.
+
+As preferências ficam em `${XDG_CONFIG_HOME:-~/.config}/spotifyrs/settings.json`. Para recuperar autorizações entre sessões ou guardar a chave do Soloist, usa um cofre que disponibilize Secret Service na sessão D-Bus, com um cofre predefinido desbloqueado. Por exemplo, instala `gnome-keyring` e inicia sessão com o cofre configurado. Sem cofre podes usar a demonstração e autorizar uma sessão, mas terás de voltar a autorizar após fechar a aplicação.
+
+## Compilar e testar no Windows
 
 Instala [Rust](https://www.rust-lang.org/tools/install). No Windows, a configuração habitual é a toolchain MSVC com Visual Studio Build Tools e Windows SDK; a toolchain GNU também é suportada com as ferramentas de ligação adequadas. As dependências estão fixadas em `Cargo.lock`.
 

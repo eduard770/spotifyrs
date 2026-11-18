@@ -1,12 +1,12 @@
 # Reprodução local com Soloist
 
-No Windows, o SpotifyRS pode iniciar e controlar o Soloist a partir da página **Ligações**. A fila local e a reprodução por link usam a ligação ao Soloist. A pesquisa por nome usa uma autorização separada do catálogo Spotify.
+O SpotifyRS pode iniciar e controlar o Soloist a partir da página **Ligações**. A fila local e a reprodução por link usam a ligação ao Soloist. A pesquisa por nome usa uma autorização separada do catálogo Spotify.
 
 1. Gera a tua chave Soloist no [painel oficial](https://developer.spotify.com/dashboard/soloist). Não a coloques no chat.
-2. Descarrega e extrai o executável Windows oficial seguindo os [downloads Soloist](https://developer.spotify.com/documentation/soloist/reference/downloads-and-updates).
-3. Abre `spotifyrs.exe` e vai a **Ligações**. Confirma o caminho do `soloist.exe`, introduz a chave no campo **Chave Soloist** e escolhe **Iniciar e ligar Soloist**.
+2. Consulta os [downloads oficiais do Soloist](https://developer.spotify.com/documentation/soloist/reference/downloads-and-updates) e extrai a versão compatível com o teu sistema numa pasta fora do repositório. No Windows, o ficheiro chama-se `soloist.exe`. No Linux, o SpotifyRS procura um ficheiro executável chamado `soloist` junto à aplicação, no `PATH` ou em `~/soloist_release_x86_64/`. Também podes indicar o seu caminho absoluto.
+3. Abre o SpotifyRS e vai a **Ligações**. Confirma o caminho do executável, introduz a chave no campo **Chave Soloist** e escolhe **Iniciar e ligar Soloist**. Se já tens o Soloist a correr, escolhe **Ligar Soloist local** com o endereço correspondente.
 4. Se for a primeira vez, abre o Spotify no telemóvel na mesma rede e escolhe **SpotifyRS local** nos dispositivos disponíveis. O SpotifyRS deteta a ligação assim que o Soloist fica emparelhado.
-5. Para reutilizar a chave, marca **Guardar chave neste PC** ao iniciar o Soloist pela app. Nas próximas vezes, podes deixar o campo vazio. **Esquecer chave** remove a entrada do Gestor de Credenciais do Windows.
+5. Para reutilizar a chave, marca **Guardar chave neste PC** ao iniciar o Soloist pela app. Nas próximas vezes, podes deixar o campo vazio. **Esquecer chave** remove a entrada do Gestor de Credenciais do Windows ou do cofre Secret Service no Linux.
 
 O SpotifyRS guarda o caminho do executável e o endereço local ao fechar. Marca **Iniciar Soloist ao abrir** para o SpotifyRS o ligar automaticamente nas próximas aberturas. A chave só é guardada quando selecionas **Guardar chave neste PC** e carregas em **Iniciar e ligar Soloist**. O Soloist recebe a chave como argumento de arranque, acessível a processos com permissões suficientes.
 

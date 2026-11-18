@@ -17,7 +17,26 @@ pub struct Settings {
 }
 
 pub fn path() -> Option<PathBuf> {
-    Some(PathBuf::from(env::var_os("LOCALAPPDATA")?).join("SpotifyRS/settings.json"))
+    Some(config_dir()?.join("settings.json"))
+}
+
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn config_dir() -> Option<PathBuf> {
+    Some(PathBuf::from(env::var_os("LOCALAPPDATA")?).join("SpotifyRS"))
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn config_dir() -> Option<PathBuf> {
+    let base = env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .or_else(|| {
+            env::var_os("HOME")
+                .map(PathBuf::from)
+                .filter(|path| path.is_absolute())
+                .map(|home| home.join(".config"))
+        })?;
+    Some(base.join("spotifyrs"))
 }
 
 impl Settings {

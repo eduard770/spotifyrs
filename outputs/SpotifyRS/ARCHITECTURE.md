@@ -29,7 +29,7 @@ O cliente HTTP é reutilizado. O pedido HTTP tem timeout total de 12 s e de liga
 - Método GET, caminho de retorno, parâmetro `state` único, tamanho do pedido e prazo do login verificados.
 - Pedidos inválidos recebem HTTP 400 e não consomem o fluxo pendente.
 - Cancelamento por sinal atómico; a troca de tokens já em curso está limitada pelo timeout de rede.
-- Os tokens de acesso ficam em memória. Os tokens de renovação ficam no Gestor de Credenciais do Windows, separados por finalidade e associados ao Client ID. Os corpos de erro remotos ficam fora dos logs.
+- Os tokens de acesso ficam em memória. Os tokens de renovação ficam no Gestor de Credenciais do Windows ou no cofre Secret Service no Linux, separados por finalidade e associados ao Client ID. Os corpos de erro remotos ficam fora dos logs.
 - A renovação conserva o token anterior quando o Spotify não devolve um novo. Um token de renovação recusado como `invalid_grant` é removido.
 - **Desligar** termina a reprodução controlada pela app. **Esquecer autorização** remove as credenciais OAuth guardadas neste PC. A revogação externa é efetuada na conta Spotify.
 

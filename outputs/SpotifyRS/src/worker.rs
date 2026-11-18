@@ -201,7 +201,7 @@ pub fn run(
             state.status = if catalog_deleted && web_deleted && library_deleted {
                 "A autorização guardada foi removida deste PC."
             } else {
-                "O Windows não conseguiu remover toda a autorização guardada."
+                "Não foi possível remover toda a autorização do cofre do sistema."
             }
             .into();
             emit(state.clone());
@@ -255,7 +255,7 @@ pub fn run(
                         state.status = if remembered {
                             "Biblioteca autorizada."
                         } else {
-                            "Biblioteca autorizada. O Windows não guardou a autorização."
+                            "Biblioteca autorizada. Não foi possível guardá-la no cofre do sistema."
                         }
                         .into();
                         let mut data = Library {
@@ -350,7 +350,7 @@ pub fn run(
                         state.status = if search.remember().is_ok() {
                             "Catálogo autorizado. Já podes pesquisar faixas."
                         } else {
-                            "Catálogo autorizado. O Windows não guardou a autorização."
+                            "Catálogo autorizado. Não foi possível guardá-lo no cofre do sistema."
                         }
                         .into();
                         catalog = Some(search);
@@ -792,7 +792,7 @@ pub fn run(
         if save_failed {
             state
                 .status
-                .push_str(" O Windows não guardou a autorização.");
+                .push_str(" Não foi possível guardar a autorização no cofre do sistema.");
         }
         state.busy = succeeded && confirm_change;
         state.authorizing = false;

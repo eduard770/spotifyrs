@@ -22,6 +22,9 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png"]
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Security_Credentials"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+secret-service = { version = "5.1", features = ["rt-async-io-crypto-openssl"] }
+
 [build-dependencies]
 embed-resource = "3"
 slint-build = "=1.18.1"
