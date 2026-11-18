@@ -1,0 +1,18 @@
+{
+  "Scenario": "idle",
+  "TimestampUtc": "2026-11-07T10:24:55.1846700Z",
+  "Samples": 60,
+  "WarmupSeconds": 3,
+  "DurationSeconds": 60.658,
+  "LogicalProcessors": 16,
+  "WindowsVersion": "Microsoft Windows NT 10.0.26300.0",
+  "Executable": "spotifyrs.exe",
+  "ExecutableSHA256": "E20673E5B8F228C99897A6DB5BF6DF097137589F578B7C121D23F71477BB0276",
+  "MeanWorkingSetMiB": 25.637,
+  "MaxWorkingSetMiB": 25.656,
+  "PeakWorkingSetMiB": 25.656,
+  "MeanPrivateBytesMiB": 6.673,
+  "MeanCpuPercent": 0.0032,
+  "MaxThreads": 13.0,
+  "IncludesSpotifyProcess": false
+}

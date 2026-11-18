@@ -1,0 +1,799 @@
+import { Button, LineEdit, ComboBox, CheckBox, Palette, AboutSlint, ListView, ScrollView, Slider } from "std-widgets.slint";
+
+export struct TrackRow {
+    uri: string,
+    title: string,
+    artist: string,
+    length: string,
+}
+
+export struct PlaylistRow {
+    id: string,
+    title: string,
+    art: image,
+    tone: int,
+}
+
+component PlaylistCard inherits Rectangle {
+    in property <PlaylistRow> playlist;
+    in property <bool> enabled;
+    in property <bool> demo;
+    callback open();
+    callback source-link();
+
+    min-width: 105px;
+    preferred-width: 151px;
+    max-width: 151px;
+    horizontal-stretch: 0;
+    vertical-stretch: 0;
+    border-radius: 8px;
+    background: target.has-focus || hit.has-hover ? #292c29 : #1d1f1d;
+    VerticalLayout {
+        padding: 9px; spacing: 7px;
+        target := FocusScope {
+            height: 156px;
+            enabled: root.enabled;
+            accessible-role: button;
+            accessible-label: root.playlist.title;
+            accessible-enabled: root.enabled;
+            accessible-action-default => { if root.enabled { root.open(); } }
+            key-pressed(event) => {
+                if root.enabled && (event.text == Key.Space || event.text == Key.Return) {
+                    if !event.repeat { root.open(); }
+                    return accept;
+                }
+                return reject;
+            }
+            VerticalLayout {
+                spacing: 8px;
+                Rectangle {
+                    height: 122px;
+                    border-radius: 6px;
+                    background: root.playlist.art.width > 0 ? #151715 :
+                        root.playlist.tone == 0 ? @linear-gradient(140deg, #3e225d, #a95779) :
+                        root.playlist.tone == 1 ? @linear-gradient(140deg, #154837, #68a979) :
+                        root.playlist.tone == 2 ? @linear-gradient(140deg, #22335c, #577aac) :
+                        @linear-gradient(140deg, #5a3022, #bc8255);
+                    if root.playlist.art.width > 0: Image {
+                        source: root.playlist.art;
+                        image-fit: contain;
+                    }
+                    if root.playlist.art.width == 0: Text {
+                        text: "♫"; color: #f6f4f3; font-size: 44px;
+                        horizontal-alignment: center; vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: root.playlist.title; color: #f5f6f5; font-size: 14px;
+                    font-weight: 700; overflow: elide; vertical-alignment: center;
+                }
+            }
+            hit := TouchArea { enabled: root.enabled; mouse-cursor: pointer; clicked => { root.open(); } }
+        }
+        if !root.demo: Button {
+            text: "No Spotify";
+            accessible-label: "Abrir " + root.playlist.title + " no Spotify";
+            clicked => { root.source-link(); }
+        }
+    }
+}
+
+component PlaybackButton inherits FocusScope {
+    in property <image> glyph;
+    in property <string> label;
+    in property <bool> prominent;
+    callback clicked();
+
+    width: root.prominent ? 40px : 36px;
+    height: root.width;
+    accessible-role: button;
+    accessible-enabled: root.enabled;
+    accessible-label: root.label;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    key-pressed(event) => {
+        if root.enabled && (event.text == Key.Space || event.text == Key.Return) {
+            if !event.repeat { root.clicked(); }
+            return accept;
+        }
+        return reject;
+    }
+
+    Rectangle {
+        border-radius: self.width / 2;
+        border-width: root.has-focus && root.enabled ? 2px : 0px;
+        border-color: #b6efbd;
+        background: root.prominent
+            ? (!root.enabled ? #454d5a : hit.pressed ? #cbd1db : hit.has-hover ? #ffffff : #f1f3f7)
+            : root.enabled && hit.has-hover ? #2b303a : transparent;
+
+        Image {
+            width: root.prominent ? 21px : 20px;
+            height: self.width;
+            source: root.glyph;
+            colorize: root.prominent
+                ? (root.enabled ? #141820 : #262b35)
+                : !root.enabled ? #697382 : hit.has-hover ? #f1f3f7 : #b0bac9;
+        }
+    }
+    hit := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component TrackList inherits ListView {
+    in property <[TrackRow]> tracks;
+    in property <string> current;
+    in property <bool> ready;
+    in property <bool> spotify-links;
+    callback choose(string);
+    callback source-link(string);
+
+    for track[index] in root.tracks: Rectangle {
+        height: 53px;
+        width: parent.width;
+        border-radius: 7px;
+        background: track.uri == root.current ? #202e2a : hit.has-hover ? #212630 : transparent;
+        hit := TouchArea {
+            enabled: root.ready;
+            mouse-cursor: pointer;
+            clicked => { root.choose(track.uri); }
+        }
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 10px;
+            spacing: 12px;
+            alignment: stretch;
+            Text {
+                width: 24px; text: track.uri == root.current ? "♪" : index + 1;
+                color: track.uri == root.current ? #b6efbd : #9ca7b9;
+                font-size: 12px; vertical-alignment: center;
+            }
+            VerticalLayout {
+                width: 34px;
+                alignment: center;
+                Rectangle {
+                    height: 34px; border-radius: 7px;
+                    background: Math.mod(index, 3) == 0 ? #2d3850 : Math.mod(index, 3) == 1 ? #403050 : #2d4544;
+                    Text { text: "♪"; color: #d9e1ef; horizontal-alignment: center; vertical-alignment: center; }
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 2px;
+                Text {
+                    text: track.title; color: track.uri == root.current ? #b6efbd : #f5f6fa;
+                    font-weight: 650; overflow: elide;
+                }
+                Text { text: track.artist; color: #a6b0c0; font-size: 12px; overflow: elide; }
+            }
+            Text { width: 47px; text: track.length; color: #a6b0c0; font-size: 12px; vertical-alignment: center; }
+            if root.spotify-links: VerticalLayout {
+                width: 34px; alignment: center;
+                Button {
+                    height: 30px; text: "↗";
+                    accessible-label: "Abrir " + track.title + " no Spotify";
+                    clicked => { root.source-link(track.uri); }
+                }
+            }
+            VerticalLayout {
+                width: 62px;
+                alignment: center;
+                Button {
+                    height: 32px;
+                    text: "Ouvir";
+                    accessible-label: "Ouvir " + track.title;
+                    enabled: root.ready;
+                    clicked => { root.choose(track.uri); }
+                }
+            }
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    init => { Palette.color-scheme = ColorScheme.dark; }
+    title: "SpotifyRS";
+    icon: @image-url("assets/spotifyrs.svg");
+    preferred-width: 1230px;
+    preferred-height: 748px;
+    min-width: 820px;
+    min-height: 635px;
+    background: #090a09;
+    default-font-family: "Segoe UI";
+    default-font-size: 14px;
+
+    in-out property <int> page: 0;
+    in-out property <string> query;
+    in-out property <string> link;
+    in-out property <string> client-id;
+    in-out property <string> soloist-address: "127.0.0.1:9090";
+    in-out property <string> soloist-executable;
+    in-out property <string> soloist-key;
+    in-out property <bool> remember-soloist-key;
+    in-out property <bool> auto-start-soloist;
+    in property <bool> soloist-launch-supported;
+    in-out property <int> selected-device: -1;
+    in-out property <int> elapsed-ms;
+    in property <int> duration-ms;
+    in property <bool> soloist;
+    in property <bool> connected;
+    in property <bool> demo;
+    in property <bool> busy;
+    in property <bool> authorizing;
+    in property <bool> catalog-ready;
+    in property <bool> library-ready;
+    in property <[PlaylistRow]> playlists;
+    in property <[PlaylistRow]> featured;
+    in property <string> library-note;
+    in property <int> playlist-offset;
+    in property <bool> more-playlists;
+    in property <string> collection-id;
+    in property <string> collection-note;
+    in property <int> track-offset;
+    in property <bool> more-collection-tracks;
+    in property <[TrackRow]> collection-tracks;
+    in property <[TrackRow]> saved-preview;
+    private property <string> selected-collection;
+    private property <string> selected-title;
+    private property <bool> search-view;
+    changed demo => { root.search-view = false; }
+    in property <bool> fresh;
+    in property <bool> playing;
+    in property <bool> can-toggle;
+    in property <bool> can-next;
+    in property <bool> can-previous;
+    in property <int> volume: -1;
+    in property <string> volume-device;
+    private property <float> volume-draft: 0;
+    private property <int> queued-volume: -1;
+    private property <bool> volume-pending;
+    changed volume => { if !root.volume-pending { root.volume-draft = max(0, root.volume); } }
+    changed volume-device => {
+        root.queued-volume = -1;
+        root.volume-draft = max(0, root.volume);
+    }
+    changed busy => {
+        if !root.busy {
+            root.volume-pending = false;
+            root.send-queued-volume();
+        }
+    }
+    in property <string> track-title: "Ainda sem faixa";
+    in property <string> track-uri;
+    in property <string> artist: "Escolhe o que queres ouvir";
+    in property <string> device-name: "Sem dispositivo";
+    in property <string> elapsed: "0:00";
+    in property <string> duration: "0:00";
+    in property <float> progress;
+    in property <string> spotify-url: "https://open.spotify.com";
+    in property <string> status: "Liga o Soloist ou experimenta a demonstração.";
+    in property <string> search-note;
+    in property <string> queue-note;
+    in property <[TrackRow]> tracks;
+    in property <[TrackRow]> queue;
+    in property <[string]> devices;
+    callback soloist-connect(string);
+    callback soloist-start(string, string, string, bool);
+    callback forget-soloist-key();
+    callback forget-authorization();
+    callback login(string);
+    callback authorize-catalog(string);
+    callback authorize-library(string);
+    callback load-library(int);
+    callback open-collection(string, int);
+    callback open-content(string, string);
+    callback cancel-auth();
+    callback search(string);
+    callback load-queue();
+    callback play-track(string);
+    callback demo-start();
+    callback logout();
+    callback refresh();
+    callback toggle();
+    callback next();
+    callback previous();
+    callback set-volume(int);
+    callback transfer(int);
+    callback open-spotify();
+    callback open-dashboard();
+    callback progress-tick();
+
+    function show-collection(id: string, title: string) {
+        root.selected-collection = id;
+        root.selected-title = title;
+        root.page = 3;
+        root.open-collection(id, 0);
+    }
+
+    function commit-volume(value: float) {
+        root.queued-volume = round(clamp(value, 0, 100));
+        root.volume-draft = root.queued-volume;
+        root.send-queued-volume();
+    }
+
+    function send-queued-volume() {
+        if root.busy { return; }
+        let percent = root.queued-volume;
+        root.queued-volume = -1;
+        if root.fresh && root.volume >= 0 && percent >= 0 && percent != root.volume {
+            root.volume-pending = true;
+            root.set-volume(percent);
+        } else {
+            root.volume-draft = max(0, root.volume);
+        }
+    }
+
+    MenuBar {
+        Menu {
+            title: "Ajuda";
+            MenuItem { title: "Sobre"; activated => { about.show(); } }
+        }
+    }
+
+    about := PopupWindow {
+        x: (root.width - self.width) / 2;
+        y: 120px;
+        width: 400px;
+        height: 280px;
+        Rectangle {
+            background: #232936; border-radius: 14px; border-width: 1px; border-color: #424d61;
+            VerticalLayout {
+                padding: 20px; spacing: 14px;
+                Text { text: "SpotifyRS"; color: #f4f6fb; font-size: 20px; font-weight: 700; }
+                Text { text: "Companion independente para reprodução Spotify."; color: #b7bfce; wrap: word-wrap; }
+                AboutSlint { }
+                Button { text: "Fechar"; clicked => { about.close(); } }
+            }
+        }
+    }
+
+    Timer {
+        interval: 1s;
+        running: root.playing && root.fresh && root.elapsed-ms < root.duration-ms;
+        triggered => { root.progress-tick(); }
+    }
+
+    VerticalLayout {
+        HorizontalLayout {
+            vertical-stretch: 1; padding: 8px; spacing: 8px;
+            Rectangle {
+                width: 219px;
+                border-radius: 9px; background: #141614;
+                VerticalLayout {
+                    padding: 12px; spacing: 8px;
+                    HorizontalLayout {
+                        height: 52px; spacing: 10px;
+                        Image { width: 38px; height: 38px; source: root.icon; }
+                        VerticalLayout {
+                            alignment: center;
+                            Text { text: "SpotifyRS"; color: #f5f6fa; font-size: 17px; font-weight: 750; }
+                        }
+                    }
+                    Button { text: "Início"; primary: root.page == 0 && !root.search-view; clicked => { root.page = 0; root.search-view = false; } }
+                    Button {
+                        text: "Fila local"; primary: root.page == 1;
+                        clicked => { root.page = 1; if !root.busy && (root.demo || (root.soloist && root.connected)) { root.load-queue(); } }
+                    }
+                    Button { text: "Ligações"; primary: root.page == 2; clicked => { root.page = 2; } }
+                    Rectangle { height: 1px; background: #303430; }
+                    Text { text: "A tua biblioteca"; color: #f3f6f3; font-size: 17px; font-weight: 700; }
+                    if root.demo || root.library-ready: Button {
+                        text: "♥   Faixas guardadas"; enabled: !root.busy;
+                        clicked => { root.show-collection("saved", "Faixas guardadas"); }
+                    }
+                    if !root.demo && !root.library-ready: Button {
+                        text: "Ligar biblioteca"; clicked => { root.page = 2; }
+                    }
+                    ListView {
+                        vertical-stretch: 1;
+                        for playlist in root.playlists: Rectangle {
+                            width: parent.width; height: 39px;
+                            Button {
+                                text: playlist.title;
+                                width: parent.width; height: parent.height - 3px;
+                                icon: playlist.art;
+                                icon-size: 24px;
+                                enabled: !root.busy;
+                                primary: root.page == 3 && root.selected-collection == playlist.id;
+                                clicked => { root.show-collection(playlist.id, playlist.title); }
+                            }
+                        }
+                    }
+                    if root.library-ready && !root.demo: HorizontalLayout {
+                        spacing: 5px;
+                        Button {
+                            text: "‹"; accessible-label: "Página anterior de playlists";
+                            enabled: !root.busy && root.playlist-offset > 0;
+                            clicked => { root.load-library(root.playlist-offset / 20 - 1); }
+                        }
+                        Button {
+                            text: "Atualizar"; enabled: !root.busy;
+                            clicked => { root.load-library(root.playlist-offset / 20); }
+                        }
+                        Button {
+                            text: "›"; accessible-label: "Mais playlists";
+                            enabled: !root.busy && root.more-playlists;
+                            clicked => { root.load-library(root.playlist-offset / 20 + 1); }
+                        }
+                    }
+                    Text {
+                        text: root.demo ? "DEMONSTRAÇÃO" : root.connected ? (root.soloist ? "SOLOIST LOCAL" : "SPOTIFY CONNECT") : "DESLIGADO";
+                        color: root.connected || root.demo ? #b6efbd : #a7b1c3;
+                        font-size: 10px; letter-spacing: 1.2px;
+                    }
+                    Text {
+                        text: root.demo ? "Faixas fictícias" : root.device-name;
+                        color: #d5dcea; font-size: 13px; overflow: elide;
+                    }
+                    if root.demo || root.connected || root.catalog-ready: Button {
+                        text: "Desligar";
+                        enabled: !root.busy;
+                        clicked => { root.logout(); }
+                    }
+                }
+            }
+
+            Rectangle {
+              border-radius: 9px; background: #141614; horizontal-stretch: 1;
+              VerticalLayout {
+                horizontal-stretch: 1;
+                padding-left: 24px; padding-right: 24px; padding-top: 14px; padding-bottom: 10px;
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    LineEdit {
+                        text <=> root.query;
+                        placeholder-text: "Pesquisar faixas ou artistas";
+                        enabled: !root.busy;
+                        accepted => { if root.query != "" { root.page = 0; root.search-view = true; root.search(root.query); } }
+                    }
+                    Button {
+                        text: "Pesquisar"; enabled: !root.busy && root.query != "";
+                        clicked => { root.page = 0; root.search-view = true; root.search(root.query); }
+                    }
+                }
+
+                if root.page == 0: VerticalLayout {
+                    vertical-stretch: 1; spacing: 12px;
+                    if !root.search-view: Rectangle {
+                        height: 78px; border-radius: 8px;
+                        background: @linear-gradient(120deg, #244634 0%, #16271d 65%, #181a18 100%);
+                        HorizontalLayout {
+                            padding-left: 19px; padding-right: 16px; spacing: 8px;
+                            Text { text: "A tua música"; color: #f8faf8; font-size: 33px; font-weight: 800; vertical-alignment: center; }
+                            Rectangle { horizontal-stretch: 1; }
+                            VerticalLayout {
+                                alignment: center;
+                                if !root.demo && !root.library-ready: Button {
+                                    text: "Ligar biblioteca"; primary: true; clicked => { root.page = 2; }
+                                }
+                                if root.demo || root.library-ready: Button {
+                                    text: "Faixas guardadas"; enabled: !root.busy;
+                                    clicked => { root.show-collection("saved", "Faixas guardadas"); }
+                                }
+                            }
+                        }
+                    }
+                    if !root.search-view && root.featured.length > 0: VerticalLayout {
+                        spacing: 8px; vertical-stretch: 0;
+                        Text { text: "As tuas playlists"; color: #f4f6f4; font-size: 21px; font-weight: 750; }
+                        HorizontalLayout {
+                            height: root.demo ? 174px : 213px;
+                            spacing: 10px; alignment: start;
+                            for playlist in root.featured: PlaylistCard {
+                                playlist: playlist; enabled: !root.busy; demo: root.demo;
+                                open => { root.show-collection(playlist.id, playlist.title); }
+                                source-link => { root.open-content("collection", playlist.id); }
+                            }
+                        }
+                    }
+                    if !root.search-view && root.library-note != "": Text {
+                        text: root.library-note; color: #bfc4bf; wrap: word-wrap;
+                    }
+                    if !root.demo: HorizontalLayout {
+                        spacing: 8px;
+                        LineEdit {
+                            text <=> root.link; placeholder-text: "Colar link de uma faixa Spotify";
+                            enabled: !root.busy;
+                            accepted => { if root.connected && root.link != "" { root.play-track(root.link); } }
+                        }
+                        Button {
+                            text: "Ouvir link"; enabled: root.connected && !root.busy && root.link != "";
+                            clicked => { root.play-track(root.link); }
+                        }
+                    }
+                    if root.search-view || root.demo || root.saved-preview.length > 0: Text {
+                        text: root.search-view ? "Resultados da pesquisa" : root.demo ? "Faixas de exemplo" : "Faixas guardadas";
+                        color: #f4f6f4; font-size: 21px; font-weight: 750;
+                    }
+                    if root.search-view && root.search-note != "": Text {
+                        text: root.search-note; color: #bfc4bf; font-size: 12px; wrap: word-wrap;
+                    }
+                    if (root.search-view || root.demo ? root.tracks.length > 0 : root.saved-preview.length > 0): TrackList {
+                        tracks: root.search-view || root.demo ? root.tracks : root.saved-preview;
+                        current: root.track-uri;
+                        ready: (root.connected || root.demo) && !root.busy;
+                        spotify-links: !root.demo;
+                        choose(uri) => { root.play-track(uri); }
+                        source-link(uri) => { root.open-content("track", uri); }
+                        vertical-stretch: 1;
+                    }
+                    if !root.demo && !root.search-view && root.saved-preview.length == 0: Rectangle {
+                        vertical-stretch: 1;
+                        VerticalLayout {
+                            spacing: 8px; alignment: start;
+                            if !root.library-ready: Text {
+                                text: "Liga a tua conta para veres as playlists e as faixas guardadas.";
+                                color: #bfc4bf; wrap: word-wrap;
+                            }
+                            if !root.library-ready: Button {
+                                text: "Experimentar demonstração"; enabled: !root.busy;
+                                clicked => { root.demo-start(); }
+                            }
+                            if root.library-ready && root.featured.length == 0 && root.library-note == "": Button {
+                                text: "Carregar playlists"; enabled: !root.busy;
+                                clicked => { root.load-library(0); }
+                            }
+                        }
+                    }
+                }
+
+                if root.page == 3: VerticalLayout {
+                    vertical-stretch: 1; spacing: 12px;
+                    Rectangle {
+                        height: 101px; border-radius: 8px;
+                        background: @linear-gradient(120deg, #354a65 0%, #222932 100%);
+                        VerticalLayout {
+                            padding: 16px; alignment: center; spacing: 5px;
+                            Text { text: root.selected-collection == "saved" ? "BIBLIOTECA" : "PLAYLIST"; color: #d7dfe9; font-size: 11px; letter-spacing: 1.2px; }
+                            Text { text: root.selected-title; color: #f7f8fa; font-size: 31px; font-weight: 800; overflow: elide; }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { text: "Faixas"; color: #f4f6f4; font-size: 21px; font-weight: 750; vertical-alignment: center; }
+                        Rectangle { horizontal-stretch: 1; }
+                        if !root.demo: Button {
+                            text: "Abrir no Spotify"; clicked => { root.open-content("collection", root.selected-collection); }
+                        }
+                    }
+                    if root.collection-id == root.selected-collection && root.collection-note != "": Text {
+                        text: root.collection-note; color: #bcc3bc; wrap: word-wrap;
+                    }
+                    if root.busy && root.collection-id != root.selected-collection: Text {
+                        text: "A carregar faixas…"; color: #bcc3bc;
+                    }
+                    if root.collection-id == root.selected-collection: TrackList {
+                        tracks: root.collection-tracks; current: root.track-uri;
+                        ready: (root.connected || root.demo) && !root.busy;
+                        spotify-links: !root.demo;
+                        choose(uri) => { root.play-track(uri); }
+                        source-link(uri) => { root.open-content("track", uri); }
+                        vertical-stretch: 1;
+                    }
+                    if root.collection-id == root.selected-collection && (root.more-collection-tracks || root.track-offset > 0): HorizontalLayout {
+                        spacing: 8px; alignment: end;
+                        Button {
+                            text: "Página anterior"; enabled: !root.busy && root.track-offset > 0;
+                            clicked => { root.open-collection(root.selected-collection, root.track-offset / 20 - 1); }
+                        }
+                        Button {
+                            text: "Mais faixas"; enabled: !root.busy && root.more-collection-tracks;
+                            clicked => { root.open-collection(root.selected-collection, root.track-offset / 20 + 1); }
+                        }
+                    }
+                }
+
+                if root.page == 1: VerticalLayout {
+                    vertical-stretch: 1; spacing: 10px;
+                    HorizontalLayout {
+                        Text { text: "Fila local"; color: #f5f6fa; font-size: 27px; font-weight: 750; vertical-alignment: center; }
+                        Rectangle { horizontal-stretch: 1; }
+                        Button {
+                            text: "Atualizar fila"; enabled: !root.busy && (root.demo || (root.soloist && root.connected));
+                            clicked => { root.load-queue(); }
+                        }
+                    }
+                    Text {
+                        text: root.queue-note != "" ? root.queue-note : "Liga o Soloist para ver as próximas faixas.";
+                        color: #b6c1d3; wrap: word-wrap;
+                    }
+                    TrackList {
+                        vertical-stretch: 1; tracks: root.queue; current: root.track-uri;
+                        ready: (root.demo || (root.soloist && root.connected)) && !root.busy;
+                        spotify-links: !root.demo;
+                        choose(uri) => { root.play-track(uri); }
+                        source-link(uri) => { root.open-content("track", uri); }
+                    }
+                }
+
+                if root.page == 2: ScrollView {
+                    vertical-stretch: 1;
+                    VerticalLayout {
+                        spacing: 13px;
+                        Text { text: "Ligações"; color: #f5f6fa; font-size: 27px; font-weight: 750; }
+                        Rectangle {
+                            border-radius: 11px; background: #1c202a;
+                            VerticalLayout {
+                                padding: 14px; spacing: 8px;
+                                Text { text: "Reprodução local"; color: #f5f6fa; font-size: 16px; font-weight: 700; }
+                                Text { text: "Inicia o Soloist neste computador ou liga a uma instância já aberta."; color: #b6c1d3; wrap: word-wrap; }
+                                if root.soloist-launch-supported: VerticalLayout {
+                                    spacing: 8px;
+                                    LineEdit {
+                                        text <=> root.soloist-executable;
+                                        placeholder-text: "Caminho do ficheiro soloist.exe";
+                                        enabled: !root.busy;
+                                    }
+                                    LineEdit {
+                                        text <=> root.soloist-key;
+                                        input-type: password;
+                                        placeholder-text: "Chave Soloist (vazio para usar a chave guardada)";
+                                        enabled: !root.busy;
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        alignment: start;
+                                        CheckBox { text: "Guardar chave neste PC"; checked <=> root.remember-soloist-key; enabled: !root.busy; }
+                                        Button { text: "Esquecer chave"; enabled: !root.busy; clicked => { root.forget-soloist-key(); } }
+                                    }
+                                    CheckBox { text: "Iniciar Soloist ao abrir"; checked <=> root.auto-start-soloist; enabled: !root.busy; }
+                                }
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    LineEdit { text <=> root.soloist-address; enabled: !root.busy; }
+                                    if root.soloist-launch-supported: Button {
+                                        text: "Iniciar e ligar Soloist"; primary: true; enabled: !root.busy;
+                                        clicked => { root.soloist-start(root.soloist-address, root.soloist-executable, root.soloist-key, root.remember-soloist-key); }
+                                    }
+                                    Button { text: "Ligar Soloist local"; enabled: !root.busy; clicked => { root.soloist-connect(root.soloist-address); } }
+                                }
+                                if root.connected && root.soloist: Button {
+                                    text: "Ativar reprodução neste computador";
+                                    enabled: !root.busy; clicked => { root.transfer(0); }
+                                }
+                            }
+                        }
+                        Rectangle {
+                            border-radius: 11px; background: #1c202a;
+                            VerticalLayout {
+                                padding: 14px; spacing: 8px;
+                                Text { text: root.catalog-ready ? "Catálogo autorizado" : "Catálogo e Spotify Connect"; color: #f5f6fa; font-size: 16px; font-weight: 700; }
+                                Text { text: "Autoriza a biblioteca para veres as tuas playlists, faixas guardadas e pesquisares por nome."; color: #b6c1d3; wrap: word-wrap; }
+                                LineEdit { text <=> root.client-id; placeholder-text: "Client ID da aplicação Spotify"; enabled: !root.busy; }
+                                HorizontalLayout {
+                                    spacing: 8px; alignment: start;
+                                    Button { text: root.library-ready ? "Reautorizar biblioteca" : "Autorizar biblioteca"; primary: true; enabled: !root.busy && root.client-id != ""; clicked => { root.authorize-library(root.client-id); } }
+                                    Button { text: "Autorizar catálogo"; enabled: !root.busy && root.client-id != ""; clicked => { root.authorize-catalog(root.client-id); } }
+                                    Button { text: "Ligar via Web API"; enabled: !root.busy && root.client-id != ""; clicked => { root.login(root.client-id); } }
+                                }
+                                HorizontalLayout {
+                                    spacing: 8px; alignment: start;
+                                    Button { text: "Abrir Spotify for Developers"; enabled: !root.busy; clicked => { root.open-dashboard(); } }
+                                    Button { text: "Esquecer autorização"; enabled: !root.busy; clicked => { root.forget-authorization(); } }
+                                    if root.authorizing: Button { text: "Cancelar autorização"; clicked => { root.cancel-auth(); } }
+                                }
+                                Text { text: "Endereço de retorno: http://127.0.0.1:8888/callback"; color: #a7b1c3; font-size: 12px; wrap: word-wrap; }
+                            }
+                        }
+                        if root.connected && !root.soloist: HorizontalLayout {
+                            spacing: 8px;
+                            ComboBox { model: root.devices; current-index <=> root.selected-device; enabled: !root.busy; }
+                            Button { text: "Usar dispositivo"; enabled: !root.busy && root.selected-device >= 0; clicked => { root.transfer(root.selected-device); } }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px; alignment: start;
+                            Button { text: "Experimentar demonstração"; enabled: !root.busy; clicked => { root.page = 0; root.demo-start(); } }
+                            if root.connected: Button { text: "Atualizar estado"; enabled: !root.busy; clicked => { root.refresh(); } }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 9px;
+                    if !root.demo && (root.connected || root.library-ready || root.catalog-ready): Image {
+                        source: @image-url("assets/spotify-attribution.svg"); width: 24px; height: 24px;
+                    }
+                    Text {
+                        text: root.status; color: #a9b5c8; font-size: 12px;
+                        vertical-alignment: center; overflow: elide; horizontal-stretch: 1;
+                    }
+                }
+              }
+            }
+        }
+        Rectangle { height: 1px; background: #303542; }
+        Rectangle {
+            height: 85px; background: #090a09;
+            HorizontalLayout {
+                padding-left: 16px; padding-right: 16px; spacing: 17px;
+                VerticalLayout {
+                    width: 44px;
+                    alignment: center;
+                    Rectangle {
+                        height: 44px; border-radius: 9px;
+                        background: @linear-gradient(130deg, #514164 0%, #2c4949 100%);
+                        Text { text: "♪"; color: #e8eef9; font-size: 21px; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                }
+                VerticalLayout {
+                    width: 181px; alignment: center; spacing: 3px;
+                    Text { text: root.track-title; color: #f5f6fa; font-weight: 700; overflow: elide; }
+                    Text { text: root.artist; color: #aab5c7; font-size: 12px; overflow: elide; }
+                }
+                VerticalLayout {
+                    alignment: center; horizontal-stretch: 1; spacing: 8px;
+                    HorizontalLayout {
+                        alignment: center; spacing: 10px;
+                        PlaybackButton {
+                            glyph: @image-url("assets/previous.svg");
+                            label: "Anterior";
+                            enabled: root.can-previous && !root.busy;
+                            clicked => { root.previous(); }
+                        }
+                        PlaybackButton {
+                            glyph: root.playing ? @image-url("assets/pause.svg") : @image-url("assets/play.svg");
+                            label: root.playing ? "Pausar" : "Reproduzir";
+                            prominent: true;
+                            enabled: root.can-toggle && !root.busy;
+                            clicked => { root.toggle(); }
+                        }
+                        PlaybackButton {
+                            glyph: @image-url("assets/next.svg");
+                            label: "Seguinte";
+                            enabled: root.can-next && !root.busy;
+                            clicked => { root.next(); }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 9px;
+                        Text { text: root.elapsed; color: #aab5c7; font-size: 11px; vertical-alignment: center; }
+                        VerticalLayout {
+                            horizontal-stretch: 1; alignment: center;
+                            Rectangle {
+                                height: 4px; border-radius: 2px; background: #3b4354;
+                                Rectangle { x: 0px; y: 0px; width: parent.width * root.progress; height: 4px; border-radius: 2px; background: #b6efbd; }
+                            }
+                        }
+                        Text { text: root.duration; color: #aab5c7; font-size: 11px; vertical-alignment: center; }
+                    }
+                }
+                VerticalLayout {
+                    width: 149px; alignment: center; spacing: 4px;
+                    HorizontalLayout {
+                        height: 26px; spacing: 6px;
+                        Image {
+                            width: 17px; height: 17px;
+                            source: @image-url("assets/volume.svg");
+                            colorize: root.volume >= 0 ? #b0bac9 : #697382;
+                        }
+                        Slider {
+                            accessible-label: "Volume";
+                            enabled: root.volume >= 0 && root.fresh && (!root.busy || root.volume-pending);
+                            value <=> root.volume-draft;
+                            released(value) => { root.commit-volume(value); }
+                            accessible-action-set-value(value) => {
+                                if self.enabled && value.is-float() { root.commit-volume(value.to-float()); }
+                            }
+                            accessible-action-increment => {
+                                if self.enabled { root.commit-volume(self.value + self.step); }
+                            }
+                            accessible-action-decrement => {
+                                if self.enabled { root.commit-volume(self.value - self.step); }
+                            }
+                        }
+                        Text {
+                            width: 34px; font-size: 11px;
+                            text: root.volume >= 0 ? round(root.volume-draft) + "%" : "—";
+                            color: #aab5c7; horizontal-alignment: right; vertical-alignment: center;
+                        }
+                    }
+                    Button { text: "Abrir no Spotify"; enabled: root.connected && root.track-uri != ""; clicked => { root.open-spotify(); } }
+                }
+            }
+        }
+    }
+}
